@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>GlassMaps</title>
+	<link rel="stylesheet" href="css/style.css">
+	<script src="http://code.jquery.com/jquery.min.js"></script>
+	<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=places"></script>
+	<script src="js/app.js"></script>
+</head>
+<body>
+	<div id="search-box">
+		<div class="content">
+			<h1>GlassMaps</h1>
+			<p>See where companies are!</p>
+			<div id="search-form">
+				<input type="text" placeholder="Enter job search term" id="query">
+				<input type="text" placeholder="Enter search location" id="loc"><br>
+				<button type="submit" id="search-button">Search</button>
+			</div>
+			<p class="warning" id="loc-warn">Location required!</p>
+			<p class="warning" id="query-warn">Search query required!</p>
+		</div>
+		<div class="content">
+			<div id="results">
+				<div id="result-template">
+					<p class="company"></p>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div id="map-canvas">
+	</div>
+</body>
+</html>
