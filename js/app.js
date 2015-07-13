@@ -218,12 +218,19 @@ $(function() {
 	// Create map
 	initialize();
 
-	// Submit search
-	$('#search-button').on('click', function() {
+	var submitSearch = function() {
 		page = 1;
 		doSearch(page);
 		return false;
-	});
+	}
+
+	// Submit search
+	$('#search-button').on('click', submitSearch);
+	$('input').on('keypress', function(e) {
+		if (e.which == 13) {
+			$('#search-button').click();
+		}
+	})
 
 	// Next page of results
 	$('#nextpage').on('click', function() {
