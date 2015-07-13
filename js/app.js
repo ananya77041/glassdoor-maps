@@ -97,9 +97,12 @@ function searchPlaces(company, location) {
 		});
 		markers.push(marker);
 
-		google.maps.event.addListener(marker, 'click', function() {
+		google.maps.event.addListener(marker, 'mouseover', function() {
 			infowindow.setContent(place.name);
 			infowindow.open(map, this);
+		});
+		google.maps.event.addListener(marker, 'mouseout', function() {
+			infowindow.close();
 		});
 	};
 };
