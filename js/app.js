@@ -3,15 +3,20 @@ API_KEY = 'AIzaSyC0olpIT7VLMU4ERAk87VdIUQRGuFAloyI';
 // Set up map
 var map;
 var infowindow;
+var service;
 var markers = [];
 var initialLocation;
 var reverseGeocodedInitial;
 
 function clearOverlays() {
-  for (var i = 0; i < markers.length; i++ ) {
-    markers[i].setMap(null);
-  }
-  markers.length = 0;
+	for (var i = 0; i < markers.length; i++ ) {
+		markers[i].setMap(null);
+	}
+	markers.length = 0;
+};
+
+function convertToMeters(miles) {
+	return miles * 1609.344;
 };
 
 // Geocode request
@@ -60,25 +65,29 @@ function geocode(location) {
 function searchPlaces(company, location) {
 	var params = {
 		location: geocode(location),
-		radius: '5000',
+		radius: radius,
 		name: company,
 		key: API_KEY
 	};
-	var service = new google.maps.places.PlacesService(map);
+	
 	service.nearbySearch(params, callback);
 
 	infowindow = new google.maps.InfoWindow();
 
-	function callback(results, status) {
-		if (status == google.maps.places.PlacesServiceStatus.OK) {
-			for (var i = 0; i < results.length; i++) {
-				createMarker(results[i]);
+	function callback(returned, status) {
+		if (returned.length > 0) {
+			if (status == google.maps.places.PlacesServiceStatus.OK) {
+				for (var i = 0; i < returned.length; i++) {
+					if (!returned[i].permanently_closed) {
+						createMarker(returned[i]);
+					}
+				}
 			}
-		}
-		map.fitBounds(markers.reduce(function(bounds, marker) {
-    		return bounds.extend(marker.getPosition());
-		}, new google.maps.LatLngBounds()));
-	}
+			map.fitBounds(markers.reduce(function(bounds, marker) {
+				return bounds.extend(marker.getPosition());
+			}, new google.maps.LatLngBounds()));
+		};
+	};
 
 	function createMarker(place) {
 		var placeLoc = place.geometry.location;
@@ -93,45 +102,38 @@ function searchPlaces(company, location) {
 			infowindow.open(map, this);
 		});
 	};
-
 };
 
 function initialize() {
-	var myLatlng1 = new google.maps.LatLng(53.65914, 0.072050);
-
-	var mapOptions = {
-		zoom: 12,
-		center: myLatlng1,
-		mapTypeId: google.maps.MapTypeId.ROADMAP
-	};
-
-	map = new google.maps.Map(document.getElementById('map-canvas'),
-		mapOptions);
-
 	if (navigator.geolocation) {
 		navigator.geolocation.getCurrentPosition(function (position) {
 			initialLocation = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-			map.setCenter(initialLocation);
 			reverseGeocodeInitial();
+			var myLatlng1 = new google.maps.LatLng(53.65914, 0.072050);
+
+			var mapOptions = {
+				zoom: 12,
+				center: initialLocation,
+				mapTypeId: google.maps.MapTypeId.ROADMAP
+			};
+
+			map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+			service = new google.maps.places.PlacesService(map);
 		});
 	};
 };
 
-var results;
+var radius;
+var page;
 
-// Check input
-function checkInput(field) {
-	if ($('#'+field).val() == '') {
-		$('#'+field+'-warn').fadeIn(1000, function() {
-			setTimeout(function() {
-				$('#'+field+'-warn').fadeOut(1000);
-			}, 1000);
-		});
-		return false;
-	}
-	else {
-		return true;
-	};
+// Flash warning
+function flashWarning(message) {
+	$('#warn').text(message)
+	.fadeIn(1000, function() {
+		setTimeout(function() {
+			$('#warn').fadeOut(1000);
+		}, 1000);
+	});
 };
 
 // Display results
@@ -140,27 +142,27 @@ var template;
 function displayResults(results) {
 	var employers = results.employers;
 	var searchLocation = results.lashedLocation.longName;
-	// map.setCenter(geocode(searchLocation));
 	
 	for (var i=0;i<employers.length;i++) {
-		// show in results list
 		template = $('#result-template').clone();
-		template.attr('id','result'+i).addClass('result').find('p').text(employers[i].name);
+		template.attr('id','result'+i).addClass('result').find('.company').text(employers[i].name);
 		template.appendTo('#results');
-
+		$('#result'+i).fadeIn(1000);
 		// show in map
 		searchPlaces(employers[i].name, searchLocation);
 	};
+	if (results.totalRecordCount > 10) {$('#nextpage').show()};
 };
 
 // JSONP Callback function
 function processJSON(json) {
-	results = json['response'];
+	var results = json['response'];
+	console.log(results);
 	displayResults(results);
 };
 
 // GlassDoor Request
-function getGlassDoor(query, loc) {
+function getGlassDoor(query, loc, page) {
 	var params = {
 		v: 1,
 		format: 'json',
@@ -172,6 +174,7 @@ function getGlassDoor(query, loc) {
 		action: 'employers',
 		q: query,
 		l: loc,
+		pn: page
 	};
 	var url = 'http://api.glassdoor.com/api/api.htm';
 
@@ -186,6 +189,27 @@ function getGlassDoor(query, loc) {
 	});
 };
 
+// Perform a search
+function doSearch(page) {
+	// remove previous results
+	$('.result').remove();
+	clearOverlays();
+
+	if ($('#query').val() != '') {
+		query = $('#query').val();
+		if ($('#loc').val() != '') {
+			loc = $('#loc').val();
+		} else {
+			flashWarning('Using current location');
+			loc = reverseGeocodedInitial;
+		};
+		radius = convertToMeters($('#radius').val());
+		getGlassDoor(query, loc, page);
+	}
+	else {
+		flashWarning('Search term required!');
+	};
+};
 
 $(function() {
 	// Create map
@@ -193,15 +217,22 @@ $(function() {
 
 	// Submit search
 	$('#search-button').on('click', function() {
-		// remove previous results
-		$('.result').remove();
-		clearOverlays();
-
-		if (checkInput('query')) {
-			query = $('#query').val();
-			loc = ( $('#loc').val() != '' ? $('#loc').val() : reverseGeocodedInitial );
-			getGlassDoor(query, loc);
-		};
+		page = 1;
+		doSearch(page);
 		return false;
 	});
+
+	// Next page of results
+	$('#nextpage').on('click', function() {
+		page++;
+		doSearch(page);
+		$('#prevpage').show();
+	})
+
+	// Previous page of results
+	$('#prevpage').on('click', function() {
+		page--;
+		doSearch(page);
+		if (page == 1) $('#prevpage').hide();
+	})
 });

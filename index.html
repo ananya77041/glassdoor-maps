@@ -12,21 +12,31 @@
 	<div id="search-box">
 		<div class="content">
 			<h1>GlassMaps</h1>
-			<p>See where companies are!</p>
+			<p>Find companies near you.</p>
 			<div id="search-form">
 				<input type="text" placeholder="Enter job search term" id="query">
 				<input type="text" placeholder="Enter search location" id="loc"><br>
+				<p>Search radius (miles):</p>
+				<select name="radius" id="radius">
+					<option value="5">5</option>
+					<option value="10">10</option>
+					<option value="15">25</option>
+				</select><br>
 				<button type="submit" id="search-button">Search</button>
 			</div>
-			<p class="warning" id="loc-warn">Location required!</p>
-			<p class="warning" id="query-warn">Search query required!</p>
+			<div id="warn-space"><p class="warning" id="warn"></p></div>
 		</div>
 		<div class="content">
 			<div id="results">
 				<div id="result-template">
 					<p class="company"></p>
+					<p class="address"></p>
 				</div>
 			</div>
+		</div>
+		<div class="content">
+			<button id="prevpage">Prev. Page</button>
+			<button id="nextpage">Next Page</button>
 		</div>
 	</div>
 	<div id="map-canvas">
